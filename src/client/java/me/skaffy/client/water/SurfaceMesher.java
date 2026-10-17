@@ -115,15 +115,15 @@ final class SurfaceMesher implements AutoCloseable {
 			Desc.ssbo(staticSolid));
 		this.netsVertices.push(cb, this.vertexCapacity);
 		this.netsVertices.dispatch(cb, cubeGroups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		this.netsQuads.bind(cb, ubo, Desc.ssbo(this.densA), Desc.ssbo(this.vertexId), Desc.ssbo(this.quads), Desc.ssbo(this.meshCounters));
 		this.netsQuads.push(cb, 0, this.quadCapacity);
 		this.netsQuads.dispatch(cb, cubeGroups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		this.meshArgs.bind(cb, ubo, Desc.ssbo(this.meshCounters));
 		this.meshArgs.push(cb, 0, this.quadCapacity);
 		this.meshArgs.dispatch(cb, 1, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 	}
 
 	void buildField(VkCommandBuffer cb, Desc ubo, VkBuf particles, VkBuf counters, int counterIndex, VkBuf dispatchArgs, int[] fineBox,
@@ -137,31 +137,31 @@ final class SurfaceMesher implements AutoCloseable {
 		this.zbSplat.bind(cb, ubo, Desc.ssbo(particles), Desc.ssbo(counters), Desc.ssbo(this.zb));
 		this.zbSplat.push(cb, counterIndex, 0, 0, 0, Program.f(WaterSettings.surfaceKernel));
 		this.zbSplat.dispatchIndirect(cb, dispatchArgs, WaterRegion.ARGS_FLUID_DISPATCH);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		this.zbField.bind(cb, ubo, Desc.ssbo(this.zb), Desc.ssbo(this.densB));
 		this.zbField.push(cb, 0, 0, 0, 0, Program.f(WaterSettings.surfaceRadius), Program.f(1.0F), Program.f(3.0F));
 		this.zbField.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 
 		this.blur.bind(cb, ubo, Desc.ssbo(this.accum), Desc.ssbo(this.densB), Desc.ssbo(this.accum));
 		this.blur.push(cb, 0, 0, 0);
 		this.blur.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		this.blur.bind(cb, ubo, Desc.ssbo(this.accum), Desc.ssbo(this.accum), Desc.ssbo(this.densB));
 		this.blur.push(cb, 1, 0, 0);
 		this.blur.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		this.blur.bind(cb, ubo, Desc.ssbo(this.accum), Desc.ssbo(this.densB), Desc.ssbo(this.densA));
 		this.blur.push(cb, 2, 0, 1);
 		this.blur.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 
 		if (fillSheets) {
 			for (int pass = 0; pass < 3; pass++) {
 				this.sheetFill.bind(cb, ubo, Desc.ssbo(this.densA), Desc.ssbo(this.densB), Desc.ssbo(this.accum));
 				this.sheetFill.push(cb, pass, 0, 0, 0, Program.f(WaterSettings.sheetSmoothing));
 				this.sheetFill.dispatch(cb, groups, 1, 1);
-				Vk.barrier(cb);
+				Vk.computeBarrier(cb);
 			}
 		}
 	}

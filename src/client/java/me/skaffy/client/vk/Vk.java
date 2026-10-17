@@ -91,6 +91,18 @@ public final class Vk {
 		}
 	}
 
+	/** Synchronizes GPU compute passes without stalling unrelated graphics/transfer work. */
+	public static void computeBarrier(VkCommandBuffer cb) {
+		try (MemoryStack stack = MemoryStack.stackPush()) {
+			VkMemoryBarrier.Buffer barrier = VkMemoryBarrier.calloc(1, stack).sType$Default();
+			int shaderAccess = VK10.VK_ACCESS_SHADER_READ_BIT | VK10.VK_ACCESS_SHADER_WRITE_BIT;
+			barrier.srcAccessMask(shaderAccess);
+			barrier.dstAccessMask(shaderAccess);
+			VK10.vkCmdPipelineBarrier(cb, VK10.VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK10.VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+				barrier, null, null);
+		}
+	}
+
 	static void queueTransition(VkTex tex) {
 		pendingTransitions.add(tex);
 	}

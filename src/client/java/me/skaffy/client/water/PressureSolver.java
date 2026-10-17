@@ -195,7 +195,7 @@ final class PressureSolver implements AutoCloseable {
 		this.smooth.bind(cb, ubo, Desc.ssbo(this.mgFlags), Desc.ssbo(this.levelB(l)), Desc.ssbo(this.levelX(l)));
 		this.smooth.push(cb, this.push(l, l, parity, init ? 1 : 0));
 		this.smooth.dispatch(cb, this.boxGroups(l), 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 	}
 
 	private void smooth(VkCommandBuffer cb, Desc ubo, int l, int parity) {
@@ -210,7 +210,7 @@ final class PressureSolver implements AutoCloseable {
 				Desc.ssbo(this.mgB), Desc.ssbo(this.mgX));
 			this.restrict.push(cb, this.push(l, l + 1, 0, 0));
 			this.restrict.dispatch(cb, this.boxGroups(l + 1), 1, 1);
-			Vk.barrier(cb);
+			Vk.computeBarrier(cb);
 		}
 		int coarsest = this.levels - 1;
 		int[] push = this.push(coarsest, coarsest, 0, this.levels == 1 ? 1 : 0);
@@ -219,12 +219,12 @@ final class PressureSolver implements AutoCloseable {
 		this.coarse.bind(cb, ubo, Desc.ssbo(this.mgFlags), Desc.ssbo(this.levelB(coarsest)), Desc.ssbo(this.levelX(coarsest)));
 		this.coarse.push(cb, withSweeps);
 		this.coarse.dispatch(cb, 1, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		for (int l = this.levels - 2; l >= 0; l--) {
 			this.prolong.bind(cb, ubo, Desc.ssbo(this.mgFlags), Desc.ssbo(this.levelX(l)), Desc.ssbo(this.mgX));
 			this.prolong.push(cb, this.push(l, l + 1, 0, 0));
 			this.prolong.dispatch(cb, this.boxGroups(l), 1, 1);
-			Vk.barrier(cb);
+			Vk.computeBarrier(cb);
 			this.smooth(cb, ubo, l, 1);
 			this.smooth(cb, ubo, l, 0);
 		}
@@ -234,13 +234,13 @@ final class PressureSolver implements AutoCloseable {
 		this.cgReduce.bind(cb, ubo, Desc.ssbo(this.partials), Desc.ssbo(this.scalars));
 		this.cgReduce.push(cb, this.partialSlots, slot);
 		this.cgReduce.dispatch(cb, 1, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 	}
 
 	private void dot(VkCommandBuffer cb, Desc ubo, VkBuf a, VkBuf b, int slot) {
 		this.cgDot.bind(cb, ubo, Desc.ssbo(a), Desc.ssbo(b), Desc.ssbo(this.partials));
 		this.cgDot.dispatch(cb, this.partialCount, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		this.reduce(cb, ubo, slot);
 	}
 
@@ -249,18 +249,18 @@ final class PressureSolver implements AutoCloseable {
 		int groups = this.partialCount;
 		this.flags0.bind(cb, ubo, Desc.ssbo(cellFlags), Desc.ssbo(this.mgFlags));
 		this.flags0.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 		for (int l = 0; l < this.levels - 1; l++) {
 			this.coarsen.bind(cb, ubo, Desc.ssbo(this.mgFlags));
 			this.coarsen.push(cb, this.push(l, l + 1, 0, 0));
 			this.coarsen.dispatch(cb, this.boxGroups(l + 1), 1, 1);
-			Vk.barrier(cb);
+			Vk.computeBarrier(cb);
 		}
 
 		this.cgInit.bind(cb, ubo, Desc.ssbo(this.mgFlags), Desc.ssbo(b), Desc.ssbo(x), Desc.ssbo(this.r));
 		this.cgInit.push(cb, this.push(0, 0, 0, 0));
 		this.cgInit.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 
 		this.vcycle(cb, ubo);
 		int rz = RZ0;
@@ -268,19 +268,19 @@ final class PressureSolver implements AutoCloseable {
 		this.cgDirection.bind(cb, ubo, Desc.ssbo(this.scalars), Desc.ssbo(this.z), Desc.ssbo(this.p));
 		this.cgDirection.push(cb, 1, 0, 0);
 		this.cgDirection.dispatch(cb, groups, 1, 1);
-		Vk.barrier(cb);
+		Vk.computeBarrier(cb);
 
 		for (int k = 0; k < iterations; k++) {
 			this.cgApply.bind(cb, ubo, Desc.ssbo(this.mgFlags), Desc.ssbo(this.p), Desc.ssbo(this.q), Desc.ssbo(this.partials));
 			this.cgApply.push(cb, this.push(0, 0, 0, 0));
 			this.cgApply.dispatch(cb, groups, 1, 1);
-			Vk.barrier(cb);
+			Vk.computeBarrier(cb);
 			this.reduce(cb, ubo, PQ);
 
 			this.cgUpdate.bind(cb, ubo, Desc.ssbo(this.scalars), Desc.ssbo(this.p), Desc.ssbo(this.q), Desc.ssbo(x), Desc.ssbo(this.r));
 			this.cgUpdate.push(cb, rz, PQ);
 			this.cgUpdate.dispatch(cb, groups, 1, 1);
-			Vk.barrier(cb);
+			Vk.computeBarrier(cb);
 			if (k == iterations - 1) {
 				break;
 			}
@@ -291,7 +291,7 @@ final class PressureSolver implements AutoCloseable {
 			this.cgDirection.bind(cb, ubo, Desc.ssbo(this.scalars), Desc.ssbo(this.z), Desc.ssbo(this.p));
 			this.cgDirection.push(cb, 0, next, rz);
 			this.cgDirection.dispatch(cb, groups, 1, 1);
-			Vk.barrier(cb);
+			Vk.computeBarrier(cb);
 			rz = next;
 		}
 	}
