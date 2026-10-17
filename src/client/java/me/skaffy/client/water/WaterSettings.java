@@ -14,8 +14,8 @@ public final class WaterSettings {
 	public static float maxDt = 1.0F / 40.0F;
 	public static int maxStepsPerFrame = 4;
 	public static int renderMaxStepsPerFrame = 64;
-	public static int cgIterations = 5;
-	public static int mgCoarseSweeps = 12;
+	public static int cgIterations = 3;
+	public static int mgCoarseSweeps = 6;
 	public static int extrapolationLayers = 4;
 	public static float flipRatio = 0.99F;
 	public static float volumeCorrection = 2.0F;
@@ -48,8 +48,8 @@ public final class WaterSettings {
 	public static float strandedTime = 1.5F;
 	public static int strandedNeighbors = 12;
 
-	public static int surfaceSubdivision = 2;
-	public static float surfaceKernel = 3.0F;
+	public static int surfaceSubdivision = 1;
+	public static float surfaceKernel = 1.5F;
 	public static float surfaceRadius = 0.9F;
 	public static float surfaceIso = 0.5F;
 	public static float dropletThreshold = 0.35F;

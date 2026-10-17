@@ -1,0 +1,53 @@
+name: Build and publish mod release
+
+on:
+  push:
+    branches:
+      - "26.3-*"
+      - "arena/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+
+      - name: Build Fabric mod jar
+        run: bash ./gradlew --no-daemon clean build
+
+      - name: Publish jar to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/^version=//p' gradle.properties | head -n 1)"
+          tree_hash="$(git rev-parse 'HEAD^{tree}' | cut -c1-12)"
+          tag="v${version}-${tree_hash}"
+          jar="build/libs/realistic-water-${version}.jar"
+
+          test -s "$jar"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists; this source tree was already published."
+            exit 0
+          fi
+
+          gh release create "$tag" "$jar" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Realistic Water (Modified) ${version}" \
+            --notes "Automated Fabric build for Minecraft 26.3 from commit ${GITHUB_SHA}."

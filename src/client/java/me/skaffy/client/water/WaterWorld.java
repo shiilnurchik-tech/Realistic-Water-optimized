@@ -138,6 +138,7 @@ public final class WaterWorld {
 	private int builtResolution = WaterSettings.resolution;
 	private int builtSandResolution = WaterSettings.sandResolution;
 	private int builtLavaResolution = WaterSettings.lavaResolution;
+	private int builtSurfaceSubdivision = WaterSettings.surfaceSubdivision;
 	private int lastSandSteps;
 	private float lastSandDt;
 
@@ -493,10 +494,12 @@ public final class WaterWorld {
 		}
 		if (WaterSettings.resolution != this.builtResolution
 			|| WaterSettings.sandResolution != this.builtSandResolution
-			|| WaterSettings.lavaResolution != this.builtLavaResolution) {
+			|| WaterSettings.lavaResolution != this.builtLavaResolution
+			|| WaterSettings.surfaceSubdivision != this.builtSurfaceSubdivision) {
 			this.builtResolution = WaterSettings.resolution;
 			this.builtSandResolution = WaterSettings.sandResolution;
 			this.builtLavaResolution = WaterSettings.lavaResolution;
+			this.builtSurfaceSubdivision = WaterSettings.surfaceSubdivision;
 			this.reload(level);
 		}
 		for (int i = 0; i < 4 && !this.chunkScanQueue.isEmpty(); i++) {
@@ -709,7 +712,7 @@ public final class WaterWorld {
 			if (fill != null) {
 				this.pendingFills.add(new Object[]{r, fill});
 			}
-			int[] box = r.computeBoxWorld(this.sourcesFor(r), this.frameCounter);
+			int[] box = r.computeBoxWorld(this.sourcesFor(r), this.frameCounter, frameDt);
 			r.boxWorld = box;
 			if (box == null) {
 				if (++r.idleFrames > 90) {
@@ -753,7 +756,12 @@ public final class WaterWorld {
 			float speed = fastest + WaterSettings.gravity * 0.15F;
 			int res = Math.max(1, WaterSettings.resolution);
 			int wanted = Math.max((int) Math.ceil(frameDt * speed * res / WaterSettings.cfl), (int) Math.ceil(frameDt / WaterSettings.maxDt));
-			steps = Mth.clamp(wanted, 1, clipDt != null ? WaterSettings.renderMaxStepsPerFrame : WaterSettings.maxStepsPerFrame);
+			int stepBudget = clipDt != null ? WaterSettings.renderMaxStepsPerFrame : WaterSettings.maxStepsPerFrame;
+			// Avoid a catch-up spiral: slow frames otherwise schedule more expensive fluid solves and get even slower.
+			if (clipDt == null && frameDt > 1.0F / 30.0F) {
+				stepBudget = Math.min(stepBudget, 2);
+			}
+			steps = Mth.clamp(wanted, 1, Math.max(1, stepBudget));
 			stepDt = Math.min(frameDt / steps, WaterSettings.maxDt);
 		}
 		int sandSteps = 0;

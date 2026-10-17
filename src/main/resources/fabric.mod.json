@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "realistic-water",
 	"version": "${version}",
-	"name": "Realistic Water",
-	"description": "Ultra realistic water and sand in Minecraft!",
+	"name": "Realistic Water (Modified)",
+	"description": "Modified fork of the original Realistic Water mod, created by Skaffy. Original: https://github.com/sskaffy/Realistic-Water",
 	"authors": [
 		"Skaffy"
 	],
