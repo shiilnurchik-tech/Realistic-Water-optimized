@@ -19,7 +19,7 @@ How to use:
 7. Spawn lava with "/water lava" or "/water ball lava [size]"; remove with "/water remove lava"
 
 ## Automated releases
-GitHub Actions builds the mod with Java 25 and publishes the jar to this fork's Releases on pushes to `26.3-*` and `arena/**` branches. The release tag includes the mod version from `gradle.properties` and a source-tree ID; bump `version` there when starting a new mod version.
+GitHub Actions builds the mod with Java 25 and publishes the jar to this fork's Releases when source/build files change on `26.3-*` and `arena/**` branches. The release tag includes the mod version from `gradle.properties` and a source-tree ID; bump `version` there when starting a new mod version. Documentation-only changes do not create a new release.
 
 #
 
